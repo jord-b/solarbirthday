@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solar Birthday Calculator</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background-color: #1b1b1b;
+      color: #f0f0f0;
+      font-family: 'Roboto Mono', monospace;
+    }
+    h1 {
+      color: #00ff99;
+      text-align: center;
+    }
+    .form-group label {
+      color: #00ff99;
+    }
+    .form-control, .form-check-label {
+      background-color: #333;
+      color: #f0f0f0;
+      border: 1px solid #555;
+    }
+    .form-control:focus {
+      background-color: #333;
+      color: #f0f0f0;
+      border-color: #00ff99;
+      box-shadow: none;
+    }
+    .form-check-input:checked {
+      background-color: #00ff99;
+      border-color: #00ff99;
+    }
+    .btn-primary {
+      background-color: #00ff99;
+      border-color: #00ff99;
+      color: #1b1b1b;
+    }
+    .btn-primary:hover {
+      background-color: #00e68a;
+      border-color: #00e68a;
+    }
+    .table {
+      background-color: #333;
+      color: #f0f0f0;
+    }
+    .table thead th {
+      background-color: #444;
+      color: #00ff99;
+    }
+    .table tbody tr:nth-child(even) {
+      background-color: #2b2b2b;
+    }
+    #nextBirthday {
+      color: #00ff99;
+      font-size: 1.2em;
+      margin-top: 10px;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.34/moment-timezone-with-data.min.js"></script>
+</head>
+<body>
+  <div class="container mt-5">
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+        <h1 class="mb-4">Solar Birthday Calculator</h1>
+        <div class="form-group">
+          <label for="birthday">Birthday</label>
+          <input type="date" id="birthday" class="form-control" value="1995-05-22">
+        </div>
+        <div class="form-group">
+          <label for="birthtime">Birth Time</label>
+          <input type="time" id="birthtime" class="form-control" value="18:00">
+        </div>
+        <div class="form-group">
+          <label for="timezone">Time Zone</label>
+          <select id="timezone" class="form-control">
+            <!-- Default to Mountain Daylight Time (MDT) -->
+            <option value="America/Denver" selected>America/Denver (MDT)</option>
+            <!-- Other time zones -->
+            <option value="UTC">UTC</option>
+            <option value="America/New_York">America/New_York (EDT)</option>
+            <option value="America/Chicago">America/Chicago (CDT)</option>
+            <option value="America/Los_Angeles">America/Los_Angeles (PDT)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Year Type</label>
+          <div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="yearType" id="siderealYear" value="sidereal" checked>
+              <label class="form-check-label" for="siderealYear">Sidereal Year</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="yearType" id="tropicalYear" value="tropical">
+              <label class="form-check-label" for="tropicalYear">Tropical Year</label>
+            </div>
+          </div>
+        </div>
+        <button id="calculate" class="btn btn-primary btn-block">Calculate</button>
+        <div id="nextBirthday"></div>
+        <hr />
+        <table class="table table-striped mt-4" id="results" style="display: none;">
+          <thead>
+            <tr>
+              <th>Year</th>
+              <th>Age</th>
+              <th>Revolution Time</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('calculate').addEventListener('click', function() {
+      const birthday = document.getElementById('birthday').value;
+      const birthtime = document.getElementById('birthtime').value;
+      const timezone = document.getElementById('timezone').value;
+      const yearType = document.querySelector('input[name="yearType"]:checked').value;
+
+      if (!birthday || !birthtime) {
+        alert('Please enter both your birthday and birth time.');
+        return;
+      }
+
+      const birthDateTime = moment.tz(`${birthday}T${birthtime}`, timezone);
+      const siderealYearMs = 365 * 24 * 60 * 60 * 1000 + 6 * 60 * 60 * 1000 + 9 * 60 * 1000 + 10 * 1000;
+      const tropicalYearMs = 365 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000 + 48 * 60 * 1000 + 45 * 1000;
+
+      const yearDuration = yearType === 'tropical' ? tropicalYearMs : siderealYearMs;
+
+      const tbody = document.getElementById('results').getElementsByTagName('tbody')[0];
+      tbody.innerHTML = '';
+
+      const today = moment().tz(timezone);
+      let currentYear = 0;
+      let nextBirthday = moment(birthDateTime);
+
+      // Find the next upcoming birthday
+      while (nextBirthday.isBefore(today)) {
+        currentYear++;
+        nextBirthday = moment(birthDateTime).add(yearDuration * currentYear, 'milliseconds').tz(timezone);
+      }
+
+      // Display next birthday
+      const nextBirthdayText = `Your next Solar Birthday: ${nextBirthday.format('MMMM D, YYYY h:mm A z')}`;
+      document.getElementById('nextBirthday').textContent = nextBirthdayText;
+
+      // Add the next 100 birthdays to the table
+      for (let i = currentYear; i < currentYear + 100; i++) {
+        const revolutionDateTime = moment(birthDateTime).add(yearDuration * i, 'milliseconds').tz(timezone);
+        const year = revolutionDateTime.year();
+        const age = i;
+        const revolutionTime = revolutionDateTime.format('M/D/YYYY h:mm A z');
+
+        const row = tbody.insertRow();
+        row.insertCell(0).textContent = year;
+        row.insertCell(1).textContent = age;
+        row.insertCell(2).textContent = revolutionTime;
+      }
+
+      // Show the table
+      document.getElementById('results').style.display = 'table';
+    });
+  </script>
+</body>
+</html>

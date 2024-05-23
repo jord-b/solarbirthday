@@ -24,6 +24,7 @@
       background-color: #333;
       color: #f0f0f0;
       border: 1px solid #555;
+      color-scheme: dark;
     }
     .form-control:focus {
       background-color: #333;
@@ -36,13 +37,14 @@
       border-color: #00ff99;
     }
     .btn-primary {
-      background-color: #00ff99;
-      border-color: #00ff99;
-      color: #1b1b1b;
+      background-color: #00ff99 !important;
+      border-color: #00ff99 !important;
+      color: #1b1b1b !important;
+      box-shadow: none !important;
     }
     .btn-primary:hover {
-      background-color: #00e68a;
-      border-color: #00e68a;
+      background-color: #00e68a !important;
+      border-color: #00e68a !important;
     }
     .table {
       background-color: #333;
@@ -57,7 +59,17 @@
     }
     #nextBirthday {
       color: #00ff99;
-      font-size: 1.2em;
+      font-size: 2em;
+      margin-top: 10px;
+    }
+    #nextBirthdayLabel {
+      color: #00ff99;
+      font-size: 1em;
+      margin-top: 15px;
+    }
+    #explanation {
+      /* font-style: italic; */
+      /* font-size: smaller; */
       margin-top: 10px;
     }
   </style>
@@ -69,8 +81,11 @@
     <div class="row justify-content-center">
       <div class="col-md-6">
         <h1 class="mb-4">Solar Birthday Calculator</h1>
+        <div>
+          <p id="explanation">When do you hit your next <strong><em>lap around the sun</em></strong>?</p>
+        </div>
         <div class="form-group">
-          <label for="birthday">Birthday</label>
+          <label for="birthday">Birth Date</label>
           <input type="date" id="birthday" class="form-control" value="1995-05-22">
         </div>
         <div class="form-group">
@@ -78,39 +93,22 @@
           <input type="time" id="birthtime" class="form-control" value="18:00">
         </div>
         <div class="form-group">
-          <label for="timezone">Time Zone</label>
-          <select id="timezone" class="form-control">
-            <!-- Default to Mountain Daylight Time (MDT) -->
-            <option value="America/Denver" selected>America/Denver (MDT)</option>
-            <!-- Other time zones -->
-            <option value="UTC">UTC</option>
-            <option value="America/New_York">America/New_York (EDT)</option>
-            <option value="America/Chicago">America/Chicago (CDT)</option>
-            <option value="America/Los_Angeles">America/Los_Angeles (PDT)</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Year Type</label>
-          <div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="yearType" id="siderealYear" value="sidereal" checked>
-              <label class="form-check-label" for="siderealYear">Sidereal Year</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="yearType" id="tropicalYear" value="tropical">
-              <label class="form-check-label" for="tropicalYear">Tropical Year</label>
-            </div>
-          </div>
+          <label for="timezone">Birth Time Zone</label>
+          <select id="timezone" class="form-control"></select>
         </div>
         <button id="calculate" class="btn btn-primary btn-block">Calculate</button>
-        <div id="nextBirthday"></div>
+        
+        <div>
+          <div id="nextBirthdayLabel"></div>
+          <div id="nextBirthday"></div>
+        </div>
         <hr />
         <table class="table table-striped mt-4" id="results" style="display: none;">
           <thead>
             <tr>
               <th>Year</th>
               <th>Age</th>
-              <th>Revolution Time</th>
+              <th>Solar Birthday</th>
             </tr>
           </thead>
           <tbody>
@@ -121,11 +119,32 @@
   </div>
 
   <script>
+    // document.getElementById('calculate').addEventListener('click', function() {
+    //   // Hide the explanation text
+    //   document.getElementById('explanation').style.display = 'none';
+      
+    //   // Rest of your existing JavaScript code...
+    // });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const timezoneSelect = document.getElementById('timezone');
+      const timezones = moment.tz.names();
+      timezones.forEach(tz => {
+        const option = document.createElement('option');
+        option.value = tz;
+        option.textContent = `${tz} (GMT${moment.tz(tz).format('Z')})`;
+        if (tz === 'America/Denver') {
+          option.selected = true;
+        }
+        timezoneSelect.appendChild(option);
+      });
+    });
+
     document.getElementById('calculate').addEventListener('click', function() {
       const birthday = document.getElementById('birthday').value;
       const birthtime = document.getElementById('birthtime').value;
       const timezone = document.getElementById('timezone').value;
-      const yearType = document.querySelector('input[name="yearType"]:checked').value;
+      const yearType = 'sidereal'; // Always use sidereal year
 
       if (!birthday || !birthtime) {
         alert('Please enter both your birthday and birth time.');
@@ -134,9 +153,8 @@
 
       const birthDateTime = moment.tz(`${birthday}T${birthtime}`, timezone);
       const siderealYearMs = 365 * 24 * 60 * 60 * 1000 + 6 * 60 * 60 * 1000 + 9 * 60 * 1000 + 10 * 1000;
-      const tropicalYearMs = 365 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000 + 48 * 60 * 1000 + 45 * 1000;
 
-      const yearDuration = yearType === 'tropical' ? tropicalYearMs : siderealYearMs;
+      const yearDuration = siderealYearMs;
 
       const tbody = document.getElementById('results').getElementsByTagName('tbody')[0];
       tbody.innerHTML = '';
@@ -152,12 +170,14 @@
       }
 
       // Display next birthday
-      const nextBirthdayText = `Your next Solar Birthday: ${nextBirthday.format('MMMM D, YYYY h:mm A z')}`;
+      const nextBirthdayText = `${nextBirthday.format('MMMM D, YYYY h:mm A z')}`;
+      document.getElementById('nextBirthdayLabel').textContent = `Your next Solar Birthday (${currentYear} laps around the sun):`
       document.getElementById('nextBirthday').textContent = nextBirthdayText;
 
       // Add the next 100 birthdays to the table
-      for (let i = currentYear; i < currentYear + 100; i++) {
+      for (let i = 0; i < 101; i++) {
         const revolutionDateTime = moment(birthDateTime).add(yearDuration * i, 'milliseconds').tz(timezone);
+        console.log(revolutionDateTime);
         const year = revolutionDateTime.year();
         const age = i;
         const revolutionTime = revolutionDateTime.format('M/D/YYYY h:mm A z');

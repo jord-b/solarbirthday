@@ -1,0 +1,81 @@
+body {
+    background-color: #1b1b1b;
+    color: #f0f0f0;
+    font-family: 'Roboto Mono', monospace;
+  }
+  
+  h1 {
+    color: #00ff99;
+    text-align: center;
+  }
+  
+  .form-group label {
+    color: #00ff99;
+  }
+  
+  .form-control, .form-check-label {
+    background-color: #333;
+    color: #f0f0f0;
+    border: 1px solid #555;
+    color-scheme: dark;
+  }
+  
+  .form-control:focus {
+    background-color: #333;
+    color: #f0f0f0;
+    border-color: #00ff99;
+    box-shadow: none;
+  }
+  
+  .form-check-input:checked {
+    background-color: #00ff99;
+    border-color: #00ff99;
+  }
+  
+  .btn-primary {
+    background-color: #00ff99 !important;
+    border-color: #00ff99 !important;
+    color: #1b1b1b !important;
+    box-shadow: none !important;
+  }
+  
+  .btn-primary:hover {
+    background-color: #00e68a !important;
+    border-color: #00e68a !important;
+  }
+  
+  .table {
+    background-color: #333;
+    color: #f0f0f0;
+  }
+  
+  .table thead th {
+    background-color: #444;
+    color: #00ff99;
+  }
+  
+  .table tbody tr:nth-child(even) {
+    background-color: #2b2b2b;
+  }
+  
+  #nextBirthday {
+    color: #00ff99;
+    font-size: 2em;
+    margin-top: 10px;
+  }
+  
+  #nextBirthdayLabel {
+    color: #00ff99;
+    font-size: 1em;
+    margin-top: 15px;
+  }
+  
+  #explanation {
+    margin-top: 10px;
+  }
+
+  #timezoneExplanation {
+    margin-top: 10px;
+    font-style: italic;
+    font-size: small;
+  }

@@ -7,74 +7,7 @@
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <style>
-    body {
-      background-color: #1b1b1b;
-      color: #f0f0f0;
-      font-family: 'Roboto Mono', monospace;
-    }
-    h1 {
-      color: #00ff99;
-      text-align: center;
-    }
-    .form-group label {
-      color: #00ff99;
-    }
-    .form-control, .form-check-label {
-      background-color: #333;
-      color: #f0f0f0;
-      border: 1px solid #555;
-      color-scheme: dark;
-    }
-    .form-control:focus {
-      background-color: #333;
-      color: #f0f0f0;
-      border-color: #00ff99;
-      box-shadow: none;
-    }
-    .form-check-input:checked {
-      background-color: #00ff99;
-      border-color: #00ff99;
-    }
-    .btn-primary {
-      background-color: #00ff99 !important;
-      border-color: #00ff99 !important;
-      color: #1b1b1b !important;
-      box-shadow: none !important;
-    }
-    .btn-primary:hover {
-      background-color: #00e68a !important;
-      border-color: #00e68a !important;
-    }
-    .table {
-      background-color: #333;
-      color: #f0f0f0;
-    }
-    .table thead th {
-      background-color: #444;
-      color: #00ff99;
-    }
-    .table tbody tr:nth-child(even) {
-      background-color: #2b2b2b;
-    }
-    #nextBirthday {
-      color: #00ff99;
-      font-size: 2em;
-      margin-top: 10px;
-    }
-    #nextBirthdayLabel {
-      color: #00ff99;
-      font-size: 1em;
-      margin-top: 15px;
-    }
-    #explanation {
-      /* font-style: italic; */
-      /* font-size: smaller; */
-      margin-top: 10px;
-    }
-  </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.34/moment-timezone-with-data.min.js"></script>
+  <link href="css/styles.css" rel="stylesheet">
 </head>
 <body>
   <div class="container mt-5">
@@ -82,7 +15,7 @@
       <div class="col-md-6">
         <h1 class="mb-4">Solar Birthday Calculator</h1>
         <div>
-          <p id="explanation">When do you hit your next <strong><em>lap around the sun</em></strong>?</p>
+          <p id="explanation">When will you hit your next <strong><em>lap around the sun</em></strong>?</p>
         </div>
         <div class="form-group">
           <label for="birthday">Birth Date</label>
@@ -92,9 +25,8 @@
           <label for="birthtime">Birth Time</label>
           <input type="time" id="birthtime" class="form-control" value="18:00">
         </div>
-        <div class="form-group">
-          <label for="timezone">Birth Time Zone</label>
-          <select id="timezone" class="form-control"></select>
+        <div>
+          <p id="timezoneExplanation">Results will be displayed in the same timezone as the one inferred above</p>
         </div>
         <button id="calculate" class="btn btn-primary btn-block">Calculate</button>
         
@@ -117,80 +49,6 @@
       </div>
     </div>
   </div>
-
-  <script>
-    // document.getElementById('calculate').addEventListener('click', function() {
-    //   // Hide the explanation text
-    //   document.getElementById('explanation').style.display = 'none';
-      
-    //   // Rest of your existing JavaScript code...
-    // });
-
-    document.addEventListener('DOMContentLoaded', function() {
-      const timezoneSelect = document.getElementById('timezone');
-      const timezones = moment.tz.names();
-      timezones.forEach(tz => {
-        const option = document.createElement('option');
-        option.value = tz;
-        option.textContent = `${tz} (GMT${moment.tz(tz).format('Z')})`;
-        if (tz === 'America/Denver') {
-          option.selected = true;
-        }
-        timezoneSelect.appendChild(option);
-      });
-    });
-
-    document.getElementById('calculate').addEventListener('click', function() {
-      const birthday = document.getElementById('birthday').value;
-      const birthtime = document.getElementById('birthtime').value;
-      const timezone = document.getElementById('timezone').value;
-      const yearType = 'sidereal'; // Always use sidereal year
-
-      if (!birthday || !birthtime) {
-        alert('Please enter both your birthday and birth time.');
-        return;
-      }
-
-      const birthDateTime = moment.tz(`${birthday}T${birthtime}`, timezone);
-      const siderealYearMs = 365 * 24 * 60 * 60 * 1000 + 6 * 60 * 60 * 1000 + 9 * 60 * 1000 + 10 * 1000;
-
-      const yearDuration = siderealYearMs;
-
-      const tbody = document.getElementById('results').getElementsByTagName('tbody')[0];
-      tbody.innerHTML = '';
-
-      const today = moment().tz(timezone);
-      let currentYear = 0;
-      let nextBirthday = moment(birthDateTime);
-
-      // Find the next upcoming birthday
-      while (nextBirthday.isBefore(today)) {
-        currentYear++;
-        nextBirthday = moment(birthDateTime).add(yearDuration * currentYear, 'milliseconds').tz(timezone);
-      }
-
-      // Display next birthday
-      const nextBirthdayText = `${nextBirthday.format('MMMM D, YYYY h:mm A z')}`;
-      document.getElementById('nextBirthdayLabel').textContent = `Your next Solar Birthday (${currentYear} laps around the sun):`
-      document.getElementById('nextBirthday').textContent = nextBirthdayText;
-
-      // Add the next 100 birthdays to the table
-      for (let i = 0; i < 101; i++) {
-        const revolutionDateTime = moment(birthDateTime).add(yearDuration * i, 'milliseconds').tz(timezone);
-        console.log(revolutionDateTime);
-        const year = revolutionDateTime.year();
-        const age = i;
-        const revolutionTime = revolutionDateTime.format('M/D/YYYY h:mm A z');
-
-        const row = tbody.insertRow();
-        row.insertCell(0).textContent = year;
-        row.insertCell(1).textContent = age;
-        row.insertCell(2).textContent = revolutionTime;
-      }
-
-      // Show the table
-      document.getElementById('results').style.display = 'table';
-    });
-  </script>
+  <script src="js/script.js"></script>
 </body>
 </html>

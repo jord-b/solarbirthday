@@ -7,6 +7,22 @@ document.getElementById('calculate').addEventListener('click', function() {
       return;
     }
   
+    // Call Lambda function through API Gateway
+    fetch('https://kxy97vglij.execute-api.us-east-2.amazonaws.com/logs', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+        // 'x-api-key': 'YOUR_API_KEY' // if using API keys
+      },
+      body: JSON.stringify({
+        "birthDate": birthday,
+        "birthTime": birthtime
+      })
+    })
+    .then(response => response.json())
+    .then(data => console.log('Success:', data))
+    .catch(error => console.error('Error:', error));
+  
     const birthDateTime = new Date(`${birthday}T${birthtime}:00`);
     const siderealYearMs = 365 * 24 * 60 * 60 * 1000 + 6 * 60 * 60 * 1000 + 9 * 60 * 1000 + 10 * 1000;
   

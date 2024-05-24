@@ -1,3 +1,18 @@
+document.addEventListener('DOMContentLoaded', function() {
+  const today = new Date();
+  
+  // Get the current date in the format YYYY-MM-DD
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are zero-based, so add 1
+  const day = String(today.getDate()).padStart(2, '0');
+
+  const formattedDate = `${year}-${month}-${day}`;
+  
+  // Set the value of the birthday input to today's date
+  document.getElementById('birthday').value = formattedDate;
+});
+
+
 document.getElementById('calculate').addEventListener('click', function() {
     const birthday = document.getElementById('birthday').value;
     const birthtime = document.getElementById('birthtime').value;

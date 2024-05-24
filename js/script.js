@@ -42,8 +42,8 @@ document.getElementById('calculate').addEventListener('click', function() {
     // Format the next birthday
     const options = { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true };
     const nextBirthdayText = nextBirthday.toLocaleString('en-US', options);
-  
-    document.getElementById('nextBirthdayLabel').textContent = `Your next Solar Birthday (${currentYear} laps around the sun):`;
+    const lapsText = currentYear === 1 ? 'lap' : 'laps'
+    document.getElementById('nextBirthdayLabel').textContent = `Your next Solar Birthday (${currentYear} ${lapsText} around the sun):`;
     document.getElementById('nextBirthday').textContent = nextBirthdayText;
   
     // Add the next 100 birthdays to the table

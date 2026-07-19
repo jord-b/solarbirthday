@@ -316,6 +316,7 @@ function celebrate() {
    ============================================================ */
 const SITE_URL = 'https://solarbirthday.jordanbuchanan.dev';
 const DATE_DAY_OPTS = { month: 'long', day: 'numeric', year: 'numeric' };
+const TIME_OPTS = { hour: 'numeric', minute: '2-digit', hour12: true };
 let sharePayload = null;
 
 function ordinal(n) {
@@ -325,12 +326,14 @@ function ordinal(n) {
 
 function prepareShare({ person, nextLap, nextBirthday, progress }) {
   const dateText = nextBirthday.toLocaleDateString('en-US', DATE_DAY_OPTS);
+  const timeText = nextBirthday.toLocaleTimeString('en-US', TIME_OPTS);
+  const fullWhen = nextBirthday.toLocaleString('en-US', DATE_OPTS);
   const who = person || '';
   sharePayload = {
-    cardOpts: { mode: 'personal', name: who, lapText: ordinal(nextLap), dateText, lapCount: nextLap, progress },
+    cardOpts: { mode: 'personal', name: who, lapText: ordinal(nextLap), dateText, timeText, lapCount: nextLap, progress },
     text: who
-      ? `${who}’s next solar birthday — their ${ordinal(nextLap)} lap around the Sun — is ${dateText}. 🌞`
-      : `My next solar birthday — my ${ordinal(nextLap)} lap around the Sun — is ${dateText}. 🌞`,
+      ? `${who}’s next solar birthday — their ${ordinal(nextLap)} lap around the Sun — is ${fullWhen}. 🌞`
+      : `My next solar birthday — my ${ordinal(nextLap)} lap around the Sun — is ${fullWhen}. 🌞`,
   };
   els.shareLabel.textContent = who ? `Share ${who}’s birthday` : 'Share this birthday';
 }
@@ -377,7 +380,7 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
 }
 
 function drawShareCard(canvas, opts) {
-  const { mode = 'personal', name = '', lapText = '', dateText = '', lapCount = 0, progress = 0.66 } = opts;
+  const { mode = 'personal', name = '', lapText = '', dateText = '', timeText = '', lapCount = 0, progress = 0.66 } = opts;
   const W = canvas.width, H = canvas.height;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, W, H);
@@ -447,18 +450,22 @@ function drawShareCard(canvas, opts) {
   } else {
     ctx.fillStyle = '#e9edf7';
     const l2 = `${name ? name + '’s' : 'Your'} ${lapText} lap`;
-    setFont(ctx, 700, fitFont(ctx, l2, tw, 700, 62, 'Space Grotesk', 32), 'Space Grotesk');
-    ctx.fillText(l2, tx, 238);
+    setFont(ctx, 700, fitFont(ctx, l2, tw, 700, 58, 'Space Grotesk', 32), 'Space Grotesk');
+    ctx.fillText(l2, tx, 214);
 
     const dg = ctx.createLinearGradient(tx, 0, tx + tw, 0);
     dg.addColorStop(0, '#ffe9b0'); dg.addColorStop(1, '#ffb347');
     ctx.fillStyle = dg;
-    setFont(ctx, 700, fitFont(ctx, dateText, tw, 700, 94, 'Space Grotesk', 46), 'Space Grotesk');
-    ctx.fillText(dateText, tx, 340);
+    setFont(ctx, 700, fitFont(ctx, dateText, tw, 700, 86, 'Space Grotesk', 44), 'Space Grotesk');
+    ctx.fillText(dateText, tx, 306);
+
+    ctx.fillStyle = '#5de4ff';
+    setFont(ctx, 500, 38, 'Roboto Mono');
+    ctx.fillText(timeText ? `at ${timeText}` : '', tx, 360);
 
     ctx.fillStyle = '#8f98b3';
-    setFont(ctx, 500, 28, 'Roboto Mono');
-    ctx.fillText(`${lapCount.toLocaleString()} ${lapCount === 1 ? 'lap' : 'laps'} around the Sun`, tx, 398);
+    setFont(ctx, 500, 27, 'Roboto Mono');
+    ctx.fillText(`${lapCount.toLocaleString()} ${lapCount === 1 ? 'lap' : 'laps'} around the Sun`, tx, 414);
   }
 
   ctx.fillStyle = '#5c6580';

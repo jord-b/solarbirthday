@@ -149,9 +149,13 @@
 
       <div class="panel table-panel">
         <div class="table-head">
-          <h2>Your upcoming solar birthdays</h2>
-          <p>Each is one more true lap around the Sun. Milestone laps are marked <span class="milestone-dot" aria-hidden="true"></span>.</p>
+          <h2>Your solar birthdays</h2>
+          <p>Each is one true lap around the Sun. Milestone laps are marked <span class="milestone-dot" aria-hidden="true"></span>.</p>
         </div>
+        <button type="button" class="expand-earlier" id="expandEarlier" aria-expanded="false" hidden>
+          <span class="chev" aria-hidden="true">▲</span>
+          <span id="expandLabel">Show earlier laps</span>
+        </button>
         <div class="table-scroll">
           <table id="results-table">
             <thead>

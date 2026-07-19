@@ -367,6 +367,36 @@ body {
   vertical-align: middle;
 }
 
+.expand-earlier {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--panel-brd);
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  margin: 0 0 0.9rem;
+  cursor: pointer;
+  transition: color .2s, background .2s, border-color .2s;
+}
+.expand-earlier:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--panel-brd-2);
+}
+.expand-earlier .chev {
+  font-size: 0.58rem;
+  color: var(--sun);
+  transition: transform .3s ease;
+}
+.expand-earlier.open .chev { transform: rotate(180deg); }
+
 .table-scroll { max-height: 420px; overflow-y: auto; border-radius: 12px; }
 .table-scroll::-webkit-scrollbar { width: 8px; }
 .table-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 8px; }
@@ -392,6 +422,12 @@ tbody tr.next td:first-child { box-shadow: inset 3px 0 0 var(--mint); }
 tbody tr.milestone td:first-child { color: var(--sun); }
 tbody td:first-child { font-weight: 700; color: var(--text); }
 .col-day { color: var(--faint); }
+
+/* already-completed laps */
+tbody tr.past td { color: var(--faint); }
+tbody tr.past td:first-child { color: var(--muted); }
+tbody tr.past.milestone td:first-child { color: var(--sun); }
+tbody tr.past:hover td { color: var(--muted); }
 
 /* Footer --------------------------------------------------- */
 .foot {

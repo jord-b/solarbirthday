@@ -43,6 +43,9 @@ const els = {
   stProg: $('stProg'), stProgSub: $('stProgSub'),
   stDrift: $('stDrift'), stDriftSub: $('stDriftSub'),
   tbody: document.querySelector('#results-table tbody'),
+  tableScroll: document.querySelector('.table-scroll'),
+  expandBtn: $('expandEarlier'),
+  expandLabel: $('expandLabel'),
 };
 
 let countdownTimer = null;   // live 1s tick
@@ -195,32 +198,87 @@ function renderDrift(birth, nextBirthday, nextLap) {
     : 'earlier than your calendar birthday by now';
 }
 
-/* Table of upcoming solar birthdays */
+/* Table of solar birthdays — upcoming by default, with the option to
+   expand backwards through every lap already completed. */
+let tableBirth = null;    // birth Date for the currently rendered table
+let tableNextLap = 0;     // the next upcoming lap number
+let earlierShown = false; // whether past laps are expanded
+
+function makeRow(birth, lap, { next = false, past = false } = {}) {
+  const when = new Date(birth.getTime() + lap * SIDEREAL_YEAR_MS);
+  const tr = document.createElement('tr');
+  if (next) tr.classList.add('next');
+  if (past) tr.classList.add('past');
+  if (lap % 10 === 0) tr.classList.add('milestone');
+
+  const c1 = document.createElement('td');
+  c1.textContent = lap.toLocaleString();
+  const c2 = document.createElement('td');
+  c2.textContent = lap === 0 ? when.toLocaleString('en-US', DATE_OPTS) + ' · born'
+                             : when.toLocaleString('en-US', DATE_OPTS);
+  const c3 = document.createElement('td');
+  c3.className = 'col-day';
+  c3.textContent = when.toLocaleDateString('en-US', WEEKDAY);
+
+  tr.append(c1, c2, c3);
+  return tr;
+}
+
 function renderTable(birth, nextLap) {
+  tableBirth = birth;
+  tableNextLap = nextLap;
+  earlierShown = false;
   els.tbody.innerHTML = '';
-  const COUNT = 40;
+
   const frag = document.createDocumentFragment();
-
-  for (let i = 0; i < COUNT; i++) {
-    const lap = nextLap + i;
-    const when = new Date(birth.getTime() + lap * SIDEREAL_YEAR_MS);
-    const tr = document.createElement('tr');
-    if (i === 0) tr.classList.add('next');
-    if (lap % 10 === 0) tr.classList.add('milestone');
-
-    const c1 = document.createElement('td');
-    c1.textContent = lap.toLocaleString();
-    const c2 = document.createElement('td');
-    c2.textContent = when.toLocaleString('en-US', DATE_OPTS);
-    const c3 = document.createElement('td');
-    c3.className = 'col-day';
-    c3.textContent = when.toLocaleDateString('en-US', WEEKDAY);
-
-    tr.append(c1, c2, c3);
-    frag.appendChild(tr);
+  for (let i = 0; i < 40; i++) {
+    frag.appendChild(makeRow(birth, nextLap + i, { next: i === 0 }));
   }
   els.tbody.appendChild(frag);
+
+  // nextLap doubles as the count of laps already completed (laps 0 … nextLap-1)
+  els.expandBtn.hidden = nextLap === 0;
+  els.expandBtn.classList.remove('open');
+  els.expandBtn.setAttribute('aria-expanded', 'false');
+  els.expandLabel.textContent =
+    `Show ${nextLap.toLocaleString()} earlier ${nextLap === 1 ? 'lap' : 'laps'}`;
 }
+
+function toggleEarlier() {
+  if (!tableBirth) return;
+
+  if (earlierShown) {
+    els.tbody.querySelectorAll('tr.past').forEach((r) => r.remove());
+    earlierShown = false;
+    els.expandBtn.classList.remove('open');
+    els.expandBtn.setAttribute('aria-expanded', 'false');
+    els.expandLabel.textContent =
+      `Show ${tableNextLap.toLocaleString()} earlier ${tableNextLap === 1 ? 'lap' : 'laps'}`;
+    els.tableScroll.scrollTop = 0;
+    return;
+  }
+
+  const frag = document.createDocumentFragment();
+  for (let lap = 0; lap < tableNextLap; lap++) {
+    frag.appendChild(makeRow(tableBirth, lap, { past: true }));
+  }
+  els.tbody.insertBefore(frag, els.tbody.firstChild);
+  earlierShown = true;
+  els.expandBtn.classList.add('open');
+  els.expandBtn.setAttribute('aria-expanded', 'true');
+  els.expandLabel.textContent = 'Hide earlier laps';
+
+  // Reveal a few past rows above the highlighted next birthday, scrolling
+  // only inside the table (never the page).
+  const nextRow = els.tbody.querySelector('tr.next');
+  if (nextRow) {
+    const delta = nextRow.getBoundingClientRect().top
+                - els.tableScroll.getBoundingClientRect().top;
+    els.tableScroll.scrollTop += delta - 132;
+  }
+}
+
+els.expandBtn.addEventListener('click', toggleEarlier);
 
 /* === Live countdown ======================================= */
 function startCountdown(target) {

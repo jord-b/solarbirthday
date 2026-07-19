@@ -117,7 +117,7 @@ const DATE_OPTS = { month: 'long', day: 'numeric', year: 'numeric', hour: 'numer
 const WEEKDAY = { weekday: 'short' };
 
 /* === Main calculation ===================================== */
-function calculate() {
+function calculate(opts = {}) {
   const dateVal = els.birthday.value;
   const timeVal = els.birthtime.value || '12:00';
 
@@ -147,7 +147,7 @@ function calculate() {
   const nextBirthday = new Date(birth.getTime() + nextLap * SIDEREAL_YEAR_MS);
   const person       = els.name.value.trim().replace(/\s+/g, ' ').slice(0, 40);
 
-  renderResults({ birth, lapsExact, lapsDone, nextLap, progress, nextBirthday, person });
+  renderResults({ birth, lapsExact, lapsDone, nextLap, progress, nextBirthday, person, scroll: opts.scroll !== false });
 }
 
 function showError(msg) {
@@ -156,7 +156,7 @@ function showError(msg) {
 }
 
 function renderResults(data) {
-  const { birth, lapsExact, lapsDone, nextLap, progress, nextBirthday, person = '' } = data;
+  const { birth, lapsExact, lapsDone, nextLap, progress, nextBirthday, person = '', scroll = true } = data;
 
   // Orbit centre readout + arc + earth
   els.roValue.textContent = Math.round(progress * 100) + '%';
@@ -188,7 +188,7 @@ function renderResults(data) {
   // Reveal + live countdown
   els.results.hidden = false;
   startCountdown(nextBirthday);
-  els.results.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+  if (scroll) els.results.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
 }
 
 /* Drift: how far the solar birthday has slid from the plain
@@ -324,6 +324,16 @@ function ordinal(n) {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
+/* A link that reproduces this exact configuration when opened. */
+function buildShareUrl(person) {
+  const params = new URLSearchParams();
+  if (els.birthday.value) params.set('d', els.birthday.value);
+  if (els.birthtime.value) params.set('t', els.birthtime.value);
+  if (person) params.set('n', person);
+  const qs = params.toString();
+  return qs ? `${SITE_URL}/?${qs}` : SITE_URL;
+}
+
 function prepareShare({ person, nextLap, nextBirthday, progress }) {
   const dateText = nextBirthday.toLocaleDateString('en-US', DATE_DAY_OPTS);
   const timeText = nextBirthday.toLocaleTimeString('en-US', TIME_OPTS);
@@ -331,6 +341,7 @@ function prepareShare({ person, nextLap, nextBirthday, progress }) {
   const who = person || '';
   sharePayload = {
     cardOpts: { mode: 'personal', name: who, lapText: ordinal(nextLap), dateText, timeText, lapCount: nextLap, progress },
+    shareUrl: buildShareUrl(who),
     text: who
       ? `${who}’s next solar birthday — their ${ordinal(nextLap)} lap around the Sun — is ${fullWhen}. 🌞`
       : `My next solar birthday — my ${ordinal(nextLap)} lap around the Sun — is ${fullWhen}. 🌞`,
@@ -500,7 +511,7 @@ async function shareCard() {
     if (!blob) throw new Error('render failed');
 
     const file = new File([blob], 'solar-birthday.png', { type: 'image/png' });
-    const caption = `${sharePayload.text} ${SITE_URL}`;
+    const caption = `${sharePayload.text} ${sharePayload.shareUrl}`;
 
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({ files: [file], text: caption });
@@ -523,12 +534,34 @@ async function shareCard() {
   }
 }
 
+/* Pre-fill and auto-calculate from a shared ?d=&t=&n= link. */
+function applyUrlConfig() {
+  const p = new URLSearchParams(location.search);
+  const d = p.get('d');
+  if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return;
+
+  const t = p.get('t');
+  const time = t && /^\d{2}:\d{2}$/.test(t) ? t : '';
+  if (isNaN(new Date(`${d}T${time || '12:00'}:00`).getTime())) return;
+
+  els.birthday.value = d;
+  if (time) els.birthtime.value = time;
+  const n = p.get('n');
+  if (n) els.name.value = n.slice(0, 40);
+
+  // Compute without yanking the recipient past the hero + orbit.
+  calculate({ scroll: false });
+}
+
 /* === Wire up ============================================== */
 els.form.addEventListener('submit', (e) => { e.preventDefault(); calculate(); });
 els.shareBtn.addEventListener('click', shareCard);
 
 // Ambient orbit until the first calculation.
 startAmbient();
+
+// Restore a shared configuration, if the URL carries one.
+applyUrlConfig();
 
 /* ============================================================
    Starfield canvas — twinkling stars + gentle parallax

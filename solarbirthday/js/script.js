@@ -97,16 +97,23 @@ function tweenEarthTo(targetDeg, duration = 1400) {
 }
 
 /* === Number helpers ======================================= */
-function countUp(el, to, { decimals = 0, suffix = '', duration = 1200 } = {}) {
-  if (reduceMotion) { el.textContent = to.toFixed(decimals) + suffix; return; }
+// Truncate toward zero to `decimals` places — never rounds up past a
+// boundary you haven't actually reached (e.g. 35.9998 → 35.99, not 36.00).
+function truncTo(v, decimals) {
+  const f = Math.pow(10, decimals);
+  return Math.floor(v * f) / f;
+}
+
+function countUp(el, to, { decimals = 0, suffix = '', duration = 1200, floor = false } = {}) {
+  const fmt = (v) => (floor ? truncTo(v, decimals) : v).toLocaleString('en-US', {
+    minimumFractionDigits: decimals, maximumFractionDigits: decimals,
+  }) + suffix;
+  if (reduceMotion) { el.textContent = fmt(to); return; }
   const t0 = performance.now();
   const ease = (x) => 1 - Math.pow(1 - x, 3);
   const step = (now) => {
     const p = Math.min((now - t0) / duration, 1);
-    const v = to * ease(p);
-    el.textContent = v.toLocaleString('en-US', {
-      minimumFractionDigits: decimals, maximumFractionDigits: decimals,
-    }) + suffix;
+    el.textContent = fmt(to * ease(p));
     if (p < 1) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
@@ -159,7 +166,7 @@ function renderResults(data) {
   const { birth, lapsExact, lapsDone, nextLap, progress, nextBirthday, person = '', scroll = true } = data;
 
   // Orbit centre readout + arc + earth
-  els.roValue.textContent = Math.round(progress * 100) + '%';
+  els.roValue.textContent = Math.floor(progress * 100) + '%';
   els.roLabel.textContent = `through lap ${nextLap}`;
   els.arc.style.strokeDashoffset = ARC_CIRCUMFERENCE * (1 - progress);
   tweenEarthTo(progress * 360);
@@ -171,14 +178,14 @@ function renderResults(data) {
   els.cdDate.textContent = nextBirthday.toLocaleString('en-US', DATE_OPTS);
 
   // Stats
-  countUp(els.stAge, lapsExact, { decimals: 2 });
+  countUp(els.stAge, lapsExact, { decimals: 2, floor: true });
   const distKm = lapsExact * ORBIT_PATH_KM;
   const distBillionKm = distKm / 1e9;
   const distBillionMi = distKm / KM_PER_MILE / 1e9;
   countUp(els.stDist, distBillionKm, { decimals: 2, suffix: 'B km' });
   els.stDistSub.textContent = `≈ ${distBillionMi.toFixed(2)} billion miles through space`;
 
-  countUp(els.stProg, progress * 100, { decimals: 0, suffix: '%' });
+  countUp(els.stProg, progress * 100, { decimals: 0, suffix: '%', floor: true });
   els.stProgSub.textContent = `of lap ${nextLap} complete`;
 
   renderDrift(birth, nextBirthday, nextLap);

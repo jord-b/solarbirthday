@@ -22,6 +22,12 @@ const ARC_CIRCUMFERENCE = 2 * Math.PI * 170; // matches the SVG radius
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+/* Optional submission logging. Paste a Google Apps Script web-app URL
+   (ending in /exec) to record each looked-up birthday to a Sheet.
+   Leave '' to disable. Fires only on a real form submit, never on
+   shared-link auto-loads. */
+const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycby_eHkzsVuiSvbct0yGhY5zjEENYt1IvSp1H7PzKHNI6bPCCLutUfqnz-3AHx6SDAjo/exec';
+
 /* ---------------------------------------------------------- */
 const $ = (id) => document.getElementById(id);
 
@@ -560,8 +566,29 @@ function applyUrlConfig() {
   calculate({ scroll: false });
 }
 
+/* Fire-and-forget log of a submitted birthday. Never blocks or breaks
+   the calculation, and silently no-ops if no endpoint is configured. */
+function logSubmission() {
+  if (!LOG_ENDPOINT) return;
+  const birthDate = els.birthday.value;
+  if (!birthDate) return; // only log real attempts
+  const payload = JSON.stringify({
+    name: els.name.value.trim().slice(0, 80),
+    birthDate,
+    birthTime: els.birthtime.value,
+    userAgent: navigator.userAgent,
+    referrer: document.referrer,
+  });
+  try {
+    const blob = new Blob([payload], { type: 'text/plain;charset=UTF-8' });
+    if (navigator.sendBeacon && navigator.sendBeacon(LOG_ENDPOINT, blob)) return;
+    fetch(LOG_ENDPOINT, { method: 'POST', mode: 'no-cors', keepalive: true,
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: payload }).catch(() => {});
+  } catch (_) { /* logging must never affect the user */ }
+}
+
 /* === Wire up ============================================== */
-els.form.addEventListener('submit', (e) => { e.preventDefault(); calculate(); });
+els.form.addEventListener('submit', (e) => { e.preventDefault(); logSubmission(); calculate(); });
 els.shareBtn.addEventListener('click', shareCard);
 
 // Ambient orbit until the first calculation.

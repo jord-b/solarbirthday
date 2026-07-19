@@ -5,6 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Solar Birthday — Your True Laps Around the Sun</title>
   <meta name="description" content="Your birthday isn't a date on a calendar — it's the moment Earth returns to the exact point in its orbit where you began. Calculate your true solar birthday.">
+  <link rel="canonical" href="https://solarbirthday.jordanbuchanan.dev/">
+
+  <!-- Open Graph / Twitter link preview -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Solar Birthday">
+  <meta property="og:url" content="https://solarbirthday.jordanbuchanan.dev/">
+  <meta property="og:title" content="Solar Birthday — your true laps around the Sun">
+  <meta property="og:description" content="Your birthday isn't a date on a calendar — it's the moment Earth returns to the exact point in its orbit where you began.">
+  <meta property="og:image" content="https://solarbirthday.jordanbuchanan.dev/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Solar Birthday — your true laps around the Sun">
+  <meta name="twitter:description" content="Find the moment Earth returns to the exact point in its orbit where you began.">
+  <meta name="twitter:image" content="https://solarbirthday.jordanbuchanan.dev/og.png">
+
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="icon" href="favicon.ico" sizes="any">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -91,6 +107,10 @@
     <section class="panel controls" aria-label="Birth details">
       <form id="form" novalidate>
         <div class="field">
+          <label for="name">Name <span class="opt">(optional)</span></label>
+          <input type="text" id="name" autocomplete="off" maxlength="40" placeholder="Whose birthday is it?">
+        </div>
+        <div class="field">
           <label for="birthday">Birth date</label>
           <input type="date" id="birthday" required>
         </div>
@@ -110,7 +130,7 @@
     <section class="results" id="results" hidden aria-live="polite">
 
       <div class="panel countdown-panel">
-        <p class="cd-eyebrow">Your next solar birthday</p>
+        <p class="cd-eyebrow" id="cdEyebrow">Your next solar birthday</p>
         <p class="cd-laps" id="cdLaps"></p>
         <div class="countdown" id="countdown">
           <div class="cd-unit"><span class="cd-num" id="cdD">0</span><span class="cd-lab">days</span></div>
@@ -122,6 +142,13 @@
           <div class="cd-unit"><span class="cd-num" id="cdS">00</span><span class="cd-lab">sec</span></div>
         </div>
         <p class="cd-date" id="cdDate"></p>
+        <button type="button" class="share-btn" id="shareBtn">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+            <line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/>
+          </svg>
+          <span class="share-label">Share this birthday</span>
+        </button>
       </div>
 
       <div class="stat-grid">
@@ -178,6 +205,8 @@
       <p class="foot-credit">Made under an open sky. Everything runs in your browser &mdash; no data leaves this page.</p>
     </footer>
   </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
   <script src="js/script.js"></script>
 </body>

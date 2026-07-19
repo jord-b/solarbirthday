@@ -27,6 +27,7 @@ const $ = (id) => document.getElementById(id);
 
 const els = {
   form: $('form'),
+  name: $('name'),
   birthday: $('birthday'),
   birthtime: $('birthtime'),
   error: $('error'),
@@ -35,6 +36,7 @@ const els = {
   roLabel: $('roLabel'),
   earthGroup: $('earthGroup'),
   arc: $('progressArc'),
+  cdEyebrow: $('cdEyebrow'),
   cdLaps: $('cdLaps'),
   cdD: $('cdD'), cdH: $('cdH'), cdM: $('cdM'), cdS: $('cdS'),
   cdDate: $('cdDate'),
@@ -46,6 +48,9 @@ const els = {
   tableScroll: document.querySelector('.table-scroll'),
   expandBtn: $('expandEarlier'),
   expandLabel: $('expandLabel'),
+  shareBtn: $('shareBtn'),
+  shareLabel: document.querySelector('#shareBtn .share-label'),
+  toast: $('toast'),
 };
 
 let countdownTimer = null;   // live 1s tick
@@ -140,8 +145,9 @@ function calculate() {
   const nextLap      = lapsDone + 1;
   const progress     = lapsExact - lapsDone;            // 0..1 through current lap
   const nextBirthday = new Date(birth.getTime() + nextLap * SIDEREAL_YEAR_MS);
+  const person       = els.name.value.trim().replace(/\s+/g, ' ').slice(0, 40);
 
-  renderResults({ birth, lapsExact, lapsDone, nextLap, progress, nextBirthday });
+  renderResults({ birth, lapsExact, lapsDone, nextLap, progress, nextBirthday, person });
 }
 
 function showError(msg) {
@@ -150,7 +156,7 @@ function showError(msg) {
 }
 
 function renderResults(data) {
-  const { birth, lapsExact, lapsDone, nextLap, progress, nextBirthday } = data;
+  const { birth, lapsExact, lapsDone, nextLap, progress, nextBirthday, person = '' } = data;
 
   // Orbit centre readout + arc + earth
   els.roValue.textContent = Math.round(progress * 100) + '%';
@@ -159,6 +165,7 @@ function renderResults(data) {
   tweenEarthTo(progress * 360);
 
   // Countdown headline
+  els.cdEyebrow.textContent = person ? `${person}’s next solar birthday` : 'Your next solar birthday';
   const lapWord = nextLap === 1 ? 'lap' : 'laps';
   els.cdLaps.textContent = `${nextLap.toLocaleString()} ${lapWord} around the Sun`;
   els.cdDate.textContent = nextBirthday.toLocaleString('en-US', DATE_OPTS);
@@ -176,6 +183,7 @@ function renderResults(data) {
 
   renderDrift(birth, nextBirthday, nextLap);
   renderTable(birth, nextLap);
+  prepareShare({ person, nextLap, nextBirthday, progress });
 
   // Reveal + live countdown
   els.results.hidden = false;
@@ -302,8 +310,215 @@ function celebrate() {
   // Recompute from the fresh moment on the next interaction.
 }
 
+/* ============================================================
+   Shareable card — draws a 1200×630 image and hands it to the
+   native share sheet (or downloads it + copies a caption).
+   ============================================================ */
+const SITE_URL = 'https://solarbirthday.jordanbuchanan.dev';
+const DATE_DAY_OPTS = { month: 'long', day: 'numeric', year: 'numeric' };
+let sharePayload = null;
+
+function ordinal(n) {
+  const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+function prepareShare({ person, nextLap, nextBirthday, progress }) {
+  const dateText = nextBirthday.toLocaleDateString('en-US', DATE_DAY_OPTS);
+  const who = person || '';
+  sharePayload = {
+    cardOpts: { mode: 'personal', name: who, lapText: ordinal(nextLap), dateText, lapCount: nextLap, progress },
+    text: who
+      ? `${who}’s next solar birthday — their ${ordinal(nextLap)} lap around the Sun — is ${dateText}. 🌞`
+      : `My next solar birthday — my ${ordinal(nextLap)} lap around the Sun — is ${dateText}. 🌞`,
+  };
+  els.shareLabel.textContent = who ? `Share ${who}’s birthday` : 'Share this birthday';
+}
+
+async function ensureFonts() {
+  if (!document.fonts || !document.fonts.load) return;
+  try {
+    await Promise.all([
+      document.fonts.load('700 96px "Space Grotesk"'),
+      document.fonts.load('500 40px "Space Grotesk"'),
+      document.fonts.load('700 28px "Roboto Mono"'),
+      document.fonts.load('400 24px "Roboto Mono"'),
+    ]);
+  } catch (_) { /* use whatever is available */ }
+}
+
+/* tiny seeded RNG so the starfield on the card is stable */
+function mulberry(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function setFont(ctx, weight, size, family) {
+  ctx.font = `${weight} ${size}px "${family}", ${family.includes('Mono') ? 'monospace' : 'sans-serif'}`;
+}
+function fitFont(ctx, text, maxWidth, weight, size, family, min) {
+  let s = size;
+  setFont(ctx, weight, s, family);
+  while (ctx.measureText(text).width > maxWidth && s > min) { s -= 2; setFont(ctx, weight, s, family); }
+  return s;
+}
+function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+  let line = '';
+  for (const w of text.split(' ')) {
+    const test = line ? line + ' ' + w : w;
+    if (ctx.measureText(test).width > maxWidth && line) { ctx.fillText(line, x, y); line = w; y += lineHeight; }
+    else line = test;
+  }
+  ctx.fillText(line, x, y);
+}
+
+function drawShareCard(canvas, opts) {
+  const { mode = 'personal', name = '', lapText = '', dateText = '', lapCount = 0, progress = 0.66 } = opts;
+  const W = canvas.width, H = canvas.height;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  // background + halo
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, '#0b1226'); bg.addColorStop(1, '#05060d');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  const halo = ctx.createRadialGradient(W * 0.28, H * 0.5, 0, W * 0.28, H * 0.5, H * 0.8);
+  halo.addColorStop(0, 'rgba(32,48,96,0.55)'); halo.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = halo; ctx.fillRect(0, 0, W, H);
+
+  // starfield
+  const rnd = mulberry(20260719);
+  ctx.fillStyle = '#fff';
+  for (let i = 0; i < 130; i++) {
+    ctx.globalAlpha = 0.12 + rnd() * 0.6;
+    ctx.beginPath(); ctx.arc(rnd() * W, rnd() * H, rnd() * 1.6 + 0.3, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // orbit motif (left half)
+  const cx = H * 0.5, cy = H * 0.5, R = H * 0.30;
+  ctx.strokeStyle = 'rgba(255,255,255,0.10)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+
+  const p = Math.max(0.02, Math.min(progress || 0.66, 0.999));
+  const ag = ctx.createLinearGradient(cx - R, cy - R, cx + R, cy + R);
+  ag.addColorStop(0, '#ffcf5c'); ag.addColorStop(0.6, '#ff9a3c'); ag.addColorStop(1, '#5de4ff');
+  ctx.strokeStyle = ag; ctx.lineWidth = 7; ctx.lineCap = 'round';
+  const a0 = -Math.PI / 2, a1 = a0 + p * Math.PI * 2;
+  ctx.beginPath(); ctx.arc(cx, cy, R, a0, a1); ctx.stroke();
+  ctx.lineCap = 'butt';
+
+  const sg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.95);
+  sg.addColorStop(0, 'rgba(255,170,60,0.5)'); sg.addColorStop(1, 'rgba(255,170,60,0)');
+  ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(cx, cy, R * 0.95, 0, Math.PI * 2); ctx.fill();
+
+  const sun = ctx.createRadialGradient(cx - R * 0.12, cy - R * 0.12, R * 0.05, cx, cy, R * 0.36);
+  sun.addColorStop(0, '#fff6d5'); sun.addColorStop(0.5, '#ffc24a'); sun.addColorStop(1, '#ff7a18');
+  ctx.fillStyle = sun; ctx.beginPath(); ctx.arc(cx, cy, R * 0.36, 0, Math.PI * 2); ctx.fill();
+
+  const ex = cx + Math.cos(a1) * R, ey = cy + Math.sin(a1) * R;
+  ctx.fillStyle = 'rgba(93,228,255,0.22)';
+  ctx.beginPath(); ctx.arc(ex, ey, 26, 0, Math.PI * 2); ctx.fill();
+  const eg = ctx.createRadialGradient(ex - 5, ey - 5, 2, ex, ey, 15);
+  eg.addColorStop(0, '#cdf3ff'); eg.addColorStop(0.55, '#4fc8ff'); eg.addColorStop(1, '#1566c8');
+  ctx.fillStyle = eg; ctx.beginPath(); ctx.arc(ex, ey, 14, 0, Math.PI * 2); ctx.fill();
+
+  // text block (right half)
+  const tx = mode === 'brand' ? 540 : H + 24;
+  const tw = W - tx - 70;
+
+  ctx.fillStyle = '#ffca62';
+  setFont(ctx, 700, 26, 'Roboto Mono');
+  ctx.letterSpacing = '6px';
+  ctx.fillText(mode === 'brand' ? 'MEASURED BY THE STARS' : 'SOLAR BIRTHDAY', tx, 148);
+  ctx.letterSpacing = '0px';
+
+  if (mode === 'brand') {
+    ctx.fillStyle = '#ffffff';
+    setFont(ctx, 700, fitFont(ctx, 'Solar Birthday', tw, 700, 100, 'Space Grotesk', 60), 'Space Grotesk');
+    ctx.fillText('Solar Birthday', tx, 268);
+    ctx.fillStyle = '#aeb6cc';
+    setFont(ctx, 500, 40, 'Space Grotesk');
+    wrapText(ctx, 'Your birthday is one true lap around the Sun.', tx, 345, tw, 52);
+  } else {
+    ctx.fillStyle = '#e9edf7';
+    const l2 = `${name ? name + '’s' : 'Your'} ${lapText} lap`;
+    setFont(ctx, 700, fitFont(ctx, l2, tw, 700, 62, 'Space Grotesk', 32), 'Space Grotesk');
+    ctx.fillText(l2, tx, 238);
+
+    const dg = ctx.createLinearGradient(tx, 0, tx + tw, 0);
+    dg.addColorStop(0, '#ffe9b0'); dg.addColorStop(1, '#ffb347');
+    ctx.fillStyle = dg;
+    setFont(ctx, 700, fitFont(ctx, dateText, tw, 700, 94, 'Space Grotesk', 46), 'Space Grotesk');
+    ctx.fillText(dateText, tx, 340);
+
+    ctx.fillStyle = '#8f98b3';
+    setFont(ctx, 500, 28, 'Roboto Mono');
+    ctx.fillText(`${lapCount.toLocaleString()} ${lapCount === 1 ? 'lap' : 'laps'} around the Sun`, tx, 398);
+  }
+
+  ctx.fillStyle = '#5c6580';
+  setFont(ctx, 400, 24, 'Roboto Mono');
+  ctx.fillText('solarbirthday.jordanbuchanan.dev', tx, H - 48);
+}
+window.__drawShareCard = drawShareCard; // exposed for one-off OG-image generation
+
+let toastTimer = null;
+function showToast(msg) {
+  els.toast.textContent = msg;
+  els.toast.hidden = false;
+  requestAnimationFrame(() => els.toast.classList.add('show'));
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    els.toast.classList.remove('show');
+    setTimeout(() => { els.toast.hidden = true; }, 300);
+  }, 3800);
+}
+
+async function shareCard() {
+  if (!sharePayload) return;
+  const original = els.shareLabel.textContent;
+  els.shareBtn.disabled = true;
+  els.shareLabel.textContent = 'Preparing card…';
+  try {
+    await ensureFonts();
+    const canvas = document.createElement('canvas');
+    canvas.width = 1200; canvas.height = 630;
+    drawShareCard(canvas, sharePayload.cardOpts);
+    const blob = await new Promise((res) => canvas.toBlob(res, 'image/png'));
+    if (!blob) throw new Error('render failed');
+
+    const file = new File([blob], 'solar-birthday.png', { type: 'image/png' });
+    const caption = `${sharePayload.text} ${SITE_URL}`;
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], text: caption });
+    } else {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'solar-birthday.png';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      let copied = false;
+      try { await navigator.clipboard.writeText(caption); copied = true; } catch (_) {}
+      showToast(copied ? 'Card saved to your device · caption copied to clipboard'
+                       : 'Card saved to your device.');
+    }
+  } catch (err) {
+    if (!err || err.name !== 'AbortError') showToast('Couldn’t create the share card — please try again.');
+  } finally {
+    els.shareBtn.disabled = false;
+    els.shareLabel.textContent = original;
+  }
+}
+
 /* === Wire up ============================================== */
 els.form.addEventListener('submit', (e) => { e.preventDefault(); calculate(); });
+els.shareBtn.addEventListener('click', shareCard);
 
 // Ambient orbit until the first calculation.
 startAmbient();

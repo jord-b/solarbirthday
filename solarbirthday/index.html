@@ -3,52 +3,174 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Solar Birthday Calculator</title>
+  <title>Solar Birthday — Your True Laps Around the Sun</title>
+  <meta name="description" content="Your birthday isn't a date on a calendar — it's the moment Earth returns to the exact point in its orbit where you began. Calculate your true solar birthday.">
   <link rel="icon" href="favicon.ico" type="image/x-icon">
-  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <link href="css/styles.css" rel="stylesheet">
 </head>
 <body>
-  <div class="container mt-5">
-    <div class="row justify-content-center">
-      <div class="col-md-6">
-        <h1 class="mb-4">Solar Birthday Calculator</h1>
-        <div>
-          <p id="explanation">When will you complete your next <strong><em>lap around the sun</em></strong>?</p>
+  <!-- Starfield -->
+  <canvas id="stars" aria-hidden="true"></canvas>
+  <div class="vignette" aria-hidden="true"></div>
+
+  <main class="wrap">
+
+    <!-- Hero -->
+    <header class="hero">
+      <p class="eyebrow">A lap around the Sun, measured by the stars</p>
+      <h1>Solar&nbsp;Birthday</h1>
+      <p class="subtitle">
+        Your birthday isn't a date on a calendar. It's the instant Earth returns to the exact
+        point in its orbit where you drew your first breath &mdash; one true
+        <em>lap around the Sun</em>. Find yours.
+      </p>
+    </header>
+
+    <!-- Orbit centerpiece -->
+    <section class="stage" aria-label="Orbital visualization">
+      <div class="orbit-wrap">
+        <svg id="orbit" viewBox="0 0 460 460" role="img" aria-label="Earth orbiting the Sun">
+          <defs>
+            <radialGradient id="sunGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%"  stop-color="#fff8e0"/>
+              <stop offset="45%" stop-color="#ffcf5c"/>
+              <stop offset="100%" stop-color="#ff7a18"/>
+            </radialGradient>
+            <radialGradient id="earthGrad" cx="38%" cy="34%" r="70%">
+              <stop offset="0%"  stop-color="#a9ecff"/>
+              <stop offset="55%" stop-color="#38b6ff"/>
+              <stop offset="100%" stop-color="#1667c9"/>
+            </radialGradient>
+            <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%"  stop-color="#ffcf5c"/>
+              <stop offset="55%" stop-color="#ff9a3c"/>
+              <stop offset="100%" stop-color="#5de4ff"/>
+            </linearGradient>
+            <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+              <feGaussianBlur stdDeviation="6" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          <!-- Orbit path -->
+          <circle class="orbit-ring" cx="230" cy="230" r="170"/>
+          <!-- Faint full-lap arc under the progress arc -->
+          <circle class="orbit-track" cx="230" cy="230" r="170"/>
+          <!-- Progress arc (completed portion of the current lap) -->
+          <circle id="progressArc" cx="230" cy="230" r="170"
+                  transform="rotate(-90 230 230)"/>
+
+          <!-- Corona -->
+          <circle class="corona corona-1" cx="230" cy="230" r="44"/>
+          <circle class="corona corona-2" cx="230" cy="230" r="58"/>
+          <!-- Sun -->
+          <circle class="sun" cx="230" cy="230" r="32" fill="url(#sunGrad)" filter="url(#glow)"/>
+
+          <!-- Earth (rotated as a group about the Sun) -->
+          <g id="earthGroup">
+            <line class="earth-tether" x1="230" y1="230" x2="230" y2="60"/>
+            <circle class="earth-halo" cx="230" cy="60" r="14"/>
+            <circle class="earth" cx="230" cy="60" r="9" fill="url(#earthGrad)"/>
+          </g>
+        </svg>
+
+        <div class="orbit-readout" id="orbitReadout">
+          <span class="ro-value" id="roValue">&mdash;</span>
+          <span class="ro-label" id="roLabel">enter your birth moment</span>
         </div>
-        <div class="form-group">
-          <label for="birthday">Birth Date</label>
-          <input type="date" id="birthday" class="form-control">
-        </div>
-        <div class="form-group">
-          <label for="birthtime">Birth Time</label>
-          <input type="time" id="birthtime" class="form-control">
-        </div>
-        <div>
-          <p id="timezoneExplanation">Results will be in the same timezone as the time entered above.</p>
-        </div>
-        <button id="calculate" class="btn btn-primary btn-block">Calculate</button>
-        
-        <div>
-          <div id="nextBirthdayLabel"></div>
-          <div id="nextBirthday"></div>
-        </div>
-        <hr />
-        <table class="table table-striped mt-4" id="results" style="display: none;">
-          <thead>
-            <tr>
-              <th>Year</th>
-              <th>Age</th>
-              <th>Solar Birthday</th>
-            </tr>
-          </thead>
-          <tbody>
-          </tbody>
-        </table>
       </div>
-    </div>
-  </div>
+    </section>
+
+    <!-- Controls -->
+    <section class="panel controls" aria-label="Birth details">
+      <form id="form" novalidate>
+        <div class="field">
+          <label for="birthday">Birth date</label>
+          <input type="date" id="birthday" required>
+        </div>
+        <div class="field">
+          <label for="birthtime">Birth time <span class="opt">(optional)</span></label>
+          <input type="time" id="birthtime" step="60">
+        </div>
+        <button type="submit" id="calculate">
+          <span>Chart my orbit</span>
+        </button>
+        <p class="hint">Results are shown in the same timezone you enter above. If you don't know the time, we'll assume noon.</p>
+        <p class="error" id="error" role="alert" hidden></p>
+      </form>
+    </section>
+
+    <!-- Results -->
+    <section class="results" id="results" hidden aria-live="polite">
+
+      <div class="panel countdown-panel">
+        <p class="cd-eyebrow">Your next solar birthday</p>
+        <p class="cd-laps" id="cdLaps"></p>
+        <div class="countdown" id="countdown">
+          <div class="cd-unit"><span class="cd-num" id="cdD">0</span><span class="cd-lab">days</span></div>
+          <div class="cd-sep">:</div>
+          <div class="cd-unit"><span class="cd-num" id="cdH">00</span><span class="cd-lab">hrs</span></div>
+          <div class="cd-sep">:</div>
+          <div class="cd-unit"><span class="cd-num" id="cdM">00</span><span class="cd-lab">min</span></div>
+          <div class="cd-sep">:</div>
+          <div class="cd-unit"><span class="cd-num" id="cdS">00</span><span class="cd-lab">sec</span></div>
+        </div>
+        <p class="cd-date" id="cdDate"></p>
+      </div>
+
+      <div class="stat-grid">
+        <div class="panel stat">
+          <p class="stat-label">Solar age</p>
+          <p class="stat-value" id="stAge">0</p>
+          <p class="stat-sub">laps completed around the Sun</p>
+        </div>
+        <div class="panel stat">
+          <p class="stat-label">Distance travelled</p>
+          <p class="stat-value" id="stDist">0</p>
+          <p class="stat-sub" id="stDistSub">around the Sun so far</p>
+        </div>
+        <div class="panel stat">
+          <p class="stat-label">Current lap</p>
+          <p class="stat-value" id="stProg">0<small>%</small></p>
+          <p class="stat-sub" id="stProgSub">complete</p>
+        </div>
+        <div class="panel stat">
+          <p class="stat-label">Calendar drift</p>
+          <p class="stat-value" id="stDrift">0</p>
+          <p class="stat-sub" id="stDriftSub">from your calendar birthday</p>
+        </div>
+      </div>
+
+      <div class="panel table-panel">
+        <div class="table-head">
+          <h2>Your upcoming solar birthdays</h2>
+          <p>Each is one more true lap around the Sun. Milestone laps are marked <span class="milestone-dot" aria-hidden="true"></span>.</p>
+        </div>
+        <div class="table-scroll">
+          <table id="results-table">
+            <thead>
+              <tr><th>Lap</th><th>Solar birthday</th><th class="col-day">Day</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <p>
+        A <strong>solar</strong> (sidereal) year is <span class="mono">365&nbsp;days, 6&nbsp;hours, 9&nbsp;minutes, 10&nbsp;seconds</span> &mdash;
+        the time Earth takes to return to the same spot relative to the distant stars.
+        It's about 20&nbsp;minutes longer than the calendar year, so your solar birthday quietly
+        drifts later on the calendar with every lap.
+      </p>
+      <p class="foot-credit">Made under an open sky. Everything runs in your browser &mdash; no data leaves this page.</p>
+    </footer>
+  </main>
+
   <script src="js/script.js"></script>
 </body>
 </html>
